@@ -1,4 +1,4 @@
-use axum::{extract::State, routing::post, Json, Router};
+use axum::{extract::State, routing::{get, post}, Json, Router};
 use serde::{Deserialize, Serialize};
 use std::{
     collections::HashSet,
@@ -31,6 +31,18 @@ enum ScanStatus {
 #[derive(Serialize)]
 struct ScanResponse {
     status: ScanStatus,
+}
+
+#[derive(Serialize)]
+struct StatusResponse {
+    total: usize,
+    evacuate_person: Vec<String>,
+    missing_person: Vec<String>,
+}
+
+#[derive(Serialize)]
+struct StatusNumberResponse {
+
 }
 
 // shared states between all the requests
