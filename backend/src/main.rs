@@ -14,7 +14,19 @@ struct DonneesRecues {
     valeur: f64,
 }
 
-fn main() {}
+#[tokio::main]
+async fn main() {
+    // 2. On configure la route /api/post pour accepter uniquement les requêtes POST
+    let app = Router::new().route("/api/post", post(recevoir_infos_handler));
+
+    // Écoute sur toutes les interfaces réseau (0.0.0.0) sur le port 3000
+    let firmware_serveur_endpoint = SocketAddr::from(([0, 0, 0, 0], 3000));
+    println!("🚀 Serveur en attente des données C++ sur http://localhost:3000/api/post");
+
+    let listener = tokio::net::TcpListener::bind(&firmware_serveur_endpoint).await.unwrap();
+
+    axum::serve(listener, app).await.unwrap();
+}
 
 // 3. Le "handler" qui reçoit les données
 // Axum extrait automatiquement le corps de la requête grâce à `Json(payload)`
