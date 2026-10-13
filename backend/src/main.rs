@@ -1,143 +1,50 @@
-use axum::{extract::State, routing::{get, post}, Json, Router};
-use serde::{Deserialize, Serialize};
-use std::{
-    collections::HashSet,
-    net::SocketAddr,
-    sync::{Arc, Mutex},
-};
+//! Point d'entrée d'Auris : le serveur de pointage d'évacuation.
+//!
+//! Ce fichier ne contient ni règle métier, ni requête de stockage, ni routage :
+//! il assemble les couches de la bibliothèque et démarre le serveur. C'est le
+//! seul endroit du programme qui connaît les implémentations concrètes des
+//! dépôts.
 
+use std::process::ExitCode;
+use std::sync::Arc;
 
-// On définit la structure des données que le C++ vas envoyer à /Api/scan
-// L'attribut `#[derive(Deserialize)]` permet à Axum de transformer le JSON reçu en cette structure.
-#[derive(Deserialize, Debug)]
-struct scanInfos {
-    borne_id: String,
-    badge_hash: String,
-}
-
-/*
-* établissement d'une énum avec les différents status qui peuvent être renvoyés.
-* Ce que le serveur répond
-*/
-#[derive(Serialize)]
-#[serde(rename_all = "snake_case")]
-enum ScanStatus {
-    Ok,
-    Unknown,
-    AlreadyScanned,
-}
-
-
-#[derive(Serialize)]
-struct ScanResponse {
-    status: ScanStatus,
-}
-
-#[derive(Serialize)]
-struct StatusResponse {
-    total: usize,
-    evacuate_person: Vec<String>,
-    missing_person: Vec<String>,
-}
-
-#[derive(Serialize)]
-struct StatusNumberResponse {
-    total: usize,
-    evacuate_person : usize,
-    missing_person : usize,
-}
-
-// shared states between all the requests
-#[derive(Clone)]
-struct AppState {
-    known: Arc<HashSet<String>>, // knew badges ( replace the DB )
-    scanned: Arc<Mutex<HashSet<String>>>, // badges already scanned
-}
-
+use auris::api::{self, AppState};
+use auris::config::ServerConfig;
+use auris::repository::memory::{InMemoryEmployees, InMemoryScans};
+use auris::service::EvacuationService;
 
 #[tokio::main]
-async fn main() {
-    // instanciation de badge connu : permet de remplacer la bdd
-    // instanciation of badges to replace the db system
-    let known: HashSet<String> = ["hash_alice", "hash_bob", "hash_charlie"].into_iter().map(String::from).collect();
-
-    let state = AppState {
-        known: Arc::new(known),
-        scanned: Arc::new(Mutex::new(HashSet::new())),
-    };
-
-    // 2. On configure la route /api/scan pour accepter uniquement les requêtes POST
-    let api = Router::new().route("/api/scan", post(handle_scan)).route("/api/status", get(handle_status)).route("/api/status/summary", get(handle_status_number)).with_state(state);
-    // Écoute sur toutes les interfaces réseau (0.0.0.0) sur le port 8080
-    let firmware_serveur_endpoint = SocketAddr::from(([0, 0, 0, 0], 8080));
-    println!("Server listening at : http://localhost:8080/api/scan");
-
-
-    let listener =  match tokio::net::TcpListener::bind(firmware_serveur_endpoint).await {
-        Ok(listener) => {
-            println!("Connected to the server at {}", firmware_serveur_endpoint);
-            listener
-        },
+async fn main() -> ExitCode {
+    let config = match ServerConfig::from_env() {
+        Ok(config) => config,
         Err(error) => {
-            eprintln!("Error : failed to bind {} ({})", firmware_serveur_endpoint, error);
-            std::process::exit(1);
+            eprintln!("Error : configuration invalide ({})", error);
+            return ExitCode::FAILURE;
         }
     };
 
-    if let Err(error) = axum::serve(listener, api).await {
+    // Câblage des dépendances : brancher MySQL plus tard ne changera que ces
+    // deux lignes, le service et les handlers resteront intacts.
+    let employees = Arc::new(InMemoryEmployees::with_fake_employees());
+    let scans = Arc::new(InMemoryScans::new());
+
+    let evacuation = Arc::new(EvacuationService::new(employees, scans));
+    let state = AppState::new(evacuation);
+
+    let listener = match tokio::net::TcpListener::bind(config.address).await {
+        Ok(listener) => listener,
+        Err(error) => {
+            eprintln!("Error : failed to bind {} ({})", config.address, error);
+            return ExitCode::FAILURE;
+        }
+    };
+
+    println!("Server listening at : http://{}/api/scan", config.address);
+
+    if let Err(error) = axum::serve(listener, api::router(state)).await {
         eprintln!("Error : server STOPPED ! : {}", error);
-        std::process::exit(1);
+        return ExitCode::FAILURE;
     }
 
-}
-
-// 3. Le "handler" qui reçoit les données
-// Axum extrait automatiquement le corps de la requête grâce à `Json(payload)`
-async fn handle_scan(State(state): State<AppState>, Json(server_infos): Json<scanInfos>) -> Json<ScanResponse> {
-    println!("scan : {:?}", server_infos);
-
-    let status = if !state.known.contains(&server_infos.badge_hash) {
-        ScanStatus::Unknown
-    } else {
-        let mut scanned = state.scanned.lock().unwrap_or_else(|e| e.into_inner());
-        // insert() renvoie true si le badge n'y était pas encore
-        if scanned.insert(server_infos.badge_hash) {
-            ScanStatus::Ok
-        } else {
-            ScanStatus::AlreadyScanned
-        }
-    };
-
-    Json(ScanResponse { status })
-}
-
-async fn handle_status_number(State(state): State<AppState>) -> Json<StatusNumberResponse> {
-    let scanned = state.scanned.lock().unwrap_or_else(|e| e.into_inner());
-
-    let total = state.known.len();
-    let evacuate_person = scanned.len();
-
-    Json(StatusNumberResponse {
-        total,
-        evacuate_person,
-        missing_person: total - evacuate_person,
-    })
-}
-
-async fn handle_status(State(state): State<AppState>) -> Json<StatusResponse>  {
-    let scanned = state.scanned.lock().unwrap_or_else(|e| e.into_inner());
-
-    let mut evacuate_person: Vec<String> = scanned.iter().cloned().collect();
-    let mut missing_person : Vec<String> = state.known.difference(&scanned).cloned().collect();
-
-
-    // un HashSet n'a pas d'ordre : on trie pour avoir des réponses stables
-    evacuate_person.sort();
-    missing_person.sort();
-
-    Json(StatusResponse {
-        total: state.known.len(),
-        evacuate_person,
-        missing_person,
-    })
+    ExitCode::SUCCESS
 }
