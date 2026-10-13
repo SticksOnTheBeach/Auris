@@ -10,7 +10,7 @@ use std::{
 // On définit la structure des données que le C++ vas envoyer à /Api/scan
 // L'attribut `#[derive(Deserialize)]` permet à Axum de transformer le JSON reçu en cette structure.
 #[derive(Deserialize, Debug)]
-struct ServerInformations {
+struct scanInfos {
     borne_id: String,
     badge_hash: String,
 }
@@ -79,7 +79,7 @@ async fn main() {
 
 // 3. Le "handler" qui reçoit les données
 // Axum extrait automatiquement le corps de la requête grâce à `Json(payload)`
-async fn handle_scan(State(state): State<AppState>, Json(server_infos): Json<ServerInformations>) -> Json<ScanResponse> {
+async fn handle_scan(State(state): State<AppState>, Json(server_infos): Json<scanInfos>) -> Json<ScanResponse> {
     println!("scan : {:?}", server_infos);
 
     let status = if !state.known.contains(&server_infos.badge_hash) {
