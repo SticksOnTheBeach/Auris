@@ -8,7 +8,7 @@ use std::net::SocketAddr;
 // On définit la structure des données que le C++ vas envoyer à /Api/post
 // L'attribut `#[derive(Deserialize)]` permet à Axum de transformer le JSON reçu en cette structure.
 #[derive(Deserialize, Debug)]
-struct DonneesRecues {
+struct ServerInformations {
     id: i32,
     message: String,
     valeur: f64,
@@ -17,7 +17,7 @@ struct DonneesRecues {
 #[tokio::main]
 async fn main() {
     // 2. On configure la route /api/post pour accepter uniquement les requêtes POST
-    let app = Router::new().route("/api/post", post(recevoir_infos_handler));
+    let api = Router::new().route("/api/post", post(receive_infos_handler));
 
     // Écoute sur toutes les interfaces réseau (0.0.0.0) sur le port 3000
     let firmware_serveur_endpoint = SocketAddr::from(([0, 0, 0, 0], 3000));
@@ -35,12 +35,12 @@ async fn main() {
         }
     };
 
-    axum::serve(listener, app).await.unwrap();
+    axum::serve(listener, api).await.unwrap();
 }
 
 // 3. Le "handler" qui reçoit les données
 // Axum extrait automatiquement le corps de la requête grâce à `Json(payload)`
-async fn recevoir_infos_handler(Json(payload): Json<DonneesRecues>) -> &'static str {
+async fn receive_infos_handler(Json(payload): Json<ServerInformations>) -> &'static str {
     println!("Données reçues avec succès !");
     println!("   - ID : {}", payload.id);
     println!("   - Message : {}", payload.message);
