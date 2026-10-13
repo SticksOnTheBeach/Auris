@@ -42,7 +42,9 @@ struct StatusResponse {
 
 #[derive(Serialize)]
 struct StatusNumberResponse {
-
+    total: usize,
+    evacuate_person : Vec<usize>,
+    missing_person : Vec<usize>,
 }
 
 // shared states between all the requests
