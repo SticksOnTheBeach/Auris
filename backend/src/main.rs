@@ -26,11 +26,11 @@ async fn main() {
 
     let listener =  match tokio::net::TcpListener::bind(firmware_serveur_endpoint).await {
         Ok(listener) => {
-            println!("Connected to the server at {}", listener.local_addr().unwrap());
+            println!("Connected to the server at {}", firmware_serveur_endpoint);
             listener
         },
         Err(error) => {
-            println!("Error: {}", error);
+            eprintln!("Erreur : impossible d'ouvrir {} ({})", firmware_serveur_endpoint, error);
             std::process::exit(1);
         }
     };
