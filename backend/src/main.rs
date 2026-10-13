@@ -67,7 +67,7 @@ async fn main() {
     };
 
     // 2. On configure la route /api/scan pour accepter uniquement les requêtes POST
-    let api = Router::new().route("/api/scan", post(handle_scan)).route("/api/status", get(handle_status)).with_state(state);
+    let api = Router::new().route("/api/scan", post(handle_scan)).route("/api/status", get(handle_status)).route("/api/status/summary", get(handle_status_number)).with_state(state);
     // Écoute sur toutes les interfaces réseau (0.0.0.0) sur le port 8080
     let firmware_serveur_endpoint = SocketAddr::from(([0, 0, 0, 0], 8080));
     println!("Server listening at : http://localhost:8080/api/scan");
@@ -129,7 +129,7 @@ async fn handle_status(State(state): State<AppState>) -> Json<StatusResponse>  {
 
     let mut evacuate_person: Vec<String> = scanned.iter().cloned().collect();
     let mut missing_person : Vec<String> = state.known.difference(&scanned).cloned().collect();
-    
+
 
     // un HashSet n'a pas d'ordre : on trie pour avoir des réponses stables
     evacuate_person.sort();
