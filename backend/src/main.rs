@@ -76,8 +76,20 @@ async fn main() {
 
 // 3. Le "handler" qui reçoit les données
 // Axum extrait automatiquement le corps de la requête grâce à `Json(payload)`
-async fn handle_scan(Json(server_infos): Json<ServerInformations>) -> Json<ScanResponse> {
+async fn handle_scan(State(state): State<AppState>, Json(server_infos): Json<ServerInformations>) -> Json<ScanResponse> {
     println!("scan : {:?}", server_infos);
 
-    Json(ScanResponse { status: ScanStatus::Ok })
+    let status = if !state.known.contains(&server_infos.badge_hash) {
+        ScanStatus::Unknown
+    } else {
+        let mut scanned = state.scanned.lock().unwrap_or_else(|e| e.into_inner());
+        // insert() renvoie true si le badge n'y était pas encore
+        if scanned.insert(server_infos.badge_hash) {
+            ScanStatus::Ok
+        } else {
+            ScanStatus::AlreadyScanned
+        }
+    };
+
+    Json(ScanResponse { status })
 }
