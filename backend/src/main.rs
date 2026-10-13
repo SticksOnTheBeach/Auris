@@ -23,7 +23,11 @@ async fn main() {
     let firmware_serveur_endpoint = SocketAddr::from(([0, 0, 0, 0], 3000));
     println!("🚀 Serveur en attente des données C++ sur http://localhost:3000/api/post");
 
-    let listener = tokio::net::TcpListener::bind(&firmware_serveur_endpoint).await.unwrap();
+
+    match tokio::net::TcpListener::bind(firmware_serveur_endpoint).await {
+        Ok(listener) => println!("Connected to the server at {}", listener.local_addr().unwrap()),
+        Err(error) => println!("Error: {}", error),
+    }
 
     axum::serve(listener, app).await.unwrap();
 }
