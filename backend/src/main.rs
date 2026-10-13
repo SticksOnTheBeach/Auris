@@ -24,10 +24,16 @@ async fn main() {
     println!("🚀 Serveur en attente des données C++ sur http://localhost:3000/api/post");
 
 
-    match tokio::net::TcpListener::bind(firmware_serveur_endpoint).await {
-        Ok(listener) => println!("Connected to the server at {}", listener.local_addr().unwrap()),
-        Err(error) => println!("Error: {}", error),
-    }
+    let listener =  match tokio::net::TcpListener::bind(firmware_serveur_endpoint).await {
+        Ok(listener) => {
+            println!("Connected to the server at {}", listener.local_addr().unwrap());
+            listener
+        },
+        Err(error) => {
+            println!("Error: {}", error);
+            std::process::exit(1);
+        }
+    };
 
     axum::serve(listener, app).await.unwrap();
 }
