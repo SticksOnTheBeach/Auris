@@ -15,3 +15,16 @@ struct DonneesRecues {
 }
 
 fn main() {}
+
+// 3. Le "handler" qui reçoit les données
+// Axum extrait automatiquement le corps de la requête grâce à `Json(payload)`
+async fn recevoir_infos_handler(Json(payload): Json<DonneesRecues>) -> &'static str {
+    // Ici, vous avez accès aux variables extraites
+    println!("Données reçues avec succès !");
+    println!("   - ID : {}", payload.id);
+    println!("   - Message : {}", payload.message);
+    println!("   - Valeur : {}", payload.valeur);
+
+    // On répond au programme C++ pour lui dire que tout s'est bien passé
+    "Donnees bien recues par le serveur Rust !"
+}
