@@ -1,9 +1,10 @@
-use axum::{
-    routing::post,
-    Json, Router,
-};
+use axum::{extract::State, routing::post, Json, Router};
 use serde::{Deserialize, Serialize};
-use std::net::SocketAddr;
+use std::{
+    collections::HashSet,
+    net::SocketAddr,
+    sync::{Arc, Mutex},
+};
 
 // On définit la structure des données que le C++ vas envoyer à /Api/post
 // L'attribut `#[derive(Deserialize)]` permet à Axum de transformer le JSON reçu en cette structure.
@@ -32,8 +33,26 @@ struct ScanResponse {
     status: ScanStatus,
 }
 
+// shared states between all the requests
+#[derive(Clone)]
+struct AppState {
+    known: Arc<HashSet<String>>, // knew badges ( replace the DB )
+    scanned: Arc<Mutex<HashSet<String>>>, // badges already scanned
+}
+
+
 #[tokio::main]
 async fn main() {
+    // instanciation de badge connu : permet de remplacer la bdd
+    // instanciation of badges to replace the db system
+    let mut badges = Arc::new(String::from);
+    let known: HashSet<String> = ["hash_alice", "hash_bob", "hash_charlie"].into_iter().map(*badges).collect();
+
+    let state = AppState {
+        known: Arc::new(known),
+        scanned: Arc::new(Mutex::new(HashSet::new())),
+    };
+
     // 2. On configure la route /api/post pour accepter uniquement les requêtes POST
     let api = Router::new().route("/api/post", post(receive_infos_handler));
 
