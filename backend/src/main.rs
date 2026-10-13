@@ -65,7 +65,7 @@ async fn main() {
     };
 
     // 2. On configure la route /api/scan pour accepter uniquement les requêtes POST
-    let api = Router::new().route("/api/scan", post(handle_scan)).with_state(state);
+    let api = Router::new().route("/api/scan", post(handle_scan)).route("/api/status", get(handle_status)).with_state(state);
     // Écoute sur toutes les interfaces réseau (0.0.0.0) sur le port 8080
     let firmware_serveur_endpoint = SocketAddr::from(([0, 0, 0, 0], 8080));
     println!("Server listening at : http://localhost:8080/api/scan");
