@@ -21,7 +21,7 @@ async fn main() {
 
     // Écoute sur toutes les interfaces réseau (0.0.0.0) sur le port 3000
     let firmware_serveur_endpoint = SocketAddr::from(([0, 0, 0, 0], 3000));
-    println!("🚀 Serveur en attente des données C++ sur http://localhost:3000/api/post");
+    println!("Server listening at : http://localhost:3000/api/post");
 
 
     let listener =  match tokio::net::TcpListener::bind(firmware_serveur_endpoint).await {
@@ -30,7 +30,7 @@ async fn main() {
             listener
         },
         Err(error) => {
-            eprintln!("Erreur : impossible d'ouvrir {} ({})", firmware_serveur_endpoint, error);
+            eprintln!("Error : failed to connect at {} ({})", firmware_serveur_endpoint, error);
             std::process::exit(1);
         }
     };
