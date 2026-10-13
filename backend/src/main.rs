@@ -6,6 +6,7 @@ use std::{
     sync::{Arc, Mutex},
 };
 
+
 // On définit la structure des données que le C++ vas envoyer à /Api/scan
 // L'attribut `#[derive(Deserialize)]` permet à Axum de transformer le JSON reçu en cette structure.
 #[derive(Deserialize, Debug)]
@@ -54,7 +55,6 @@ async fn main() {
 
     // 2. On configure la route /api/post pour accepter uniquement les requêtes POST
     let api = Router::new().route("/api/scan", post(handle_scan)).with_state(state);
-
     // Écoute sur toutes les interfaces réseau (0.0.0.0) sur le port 8080
     let firmware_serveur_endpoint = SocketAddr::from(([0, 0, 0, 0], 8080));
     println!("Server listening at : http://localhost:8080/api/scan");
@@ -71,7 +71,11 @@ async fn main() {
         }
     };
 
-    axum::serve(listener, api).await.unwrap();
+    if let Err(error) = axum::serve(listener, api).await {
+        eprintln!("Error : connection failed : {}", error);
+        std::process::exit(1);
+    }
+
 }
 
 // 3. Le "handler" qui reçoit les données
