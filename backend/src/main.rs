@@ -111,11 +111,16 @@ async fn handle_scan(State(state): State<AppState>, Json(server_infos): Json<sca
     Json(ScanResponse { status })
 }
 
-async fn handle_status(State(state): State<AppState>) -> Json<StatusResponse> {
+async fn handle_status(State(state): State<AppState>) -> Json<StatusResponse>  {
     let scanned = state.scanned.lock().unwrap_or_else(|e| e.into_inner());
 
     let mut evacuate_person: Vec<String> = scanned.iter().cloned().collect();
+    let mut evacuate_person_number : Vec<usize> = scanned.iter().cloned().size_hint().collect();
     let mut missing_person : Vec<String> = state.known.difference(&scanned).cloned().collect();
+    let mut missing_person_number : Vec<usize> = scanned.iter().cloned().size_hint().collect();
+
+
+
 
     // un HashSet n'a pas d'ordre : on trie pour avoir des réponses stables
     evacuate_person.sort();
