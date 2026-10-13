@@ -53,11 +53,11 @@ async fn main() {
     };
 
     // 2. On configure la route /api/post pour accepter uniquement les requêtes POST
-    let api = Router::new().route("/api/post", post(handle_scan));
+    let api = Router::new().route("/api/scan", post(handle_scan)).with_state(state);
 
-    // Écoute sur toutes les interfaces réseau (0.0.0.0) sur le port 3000
-    let firmware_serveur_endpoint = SocketAddr::from(([0, 0, 0, 0], 3000));
-    println!("Server listening at : http://localhost:3000/api/post");
+    // Écoute sur toutes les interfaces réseau (0.0.0.0) sur le port 8080
+    let firmware_serveur_endpoint = SocketAddr::from(([0, 0, 0, 0], 8080));
+    println!("Server listening at : http://localhost:8080/api/scan");
 
 
     let listener =  match tokio::net::TcpListener::bind(firmware_serveur_endpoint).await {
