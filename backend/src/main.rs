@@ -2,7 +2,7 @@ use axum::{
     routing::post,
     Json, Router,
 };
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::net::SocketAddr;
 
 // On définit la structure des données que le C++ vas envoyer à /Api/post
@@ -12,6 +12,24 @@ struct ServerInformations {
     id: i32,
     message: String,
     valeur: f64,
+}
+
+/*
+* établissement d'une énum avec les différents status qui peuvent être renvoyés.
+* Ce que le serveur répond
+*/
+#[derive(Serialize)]
+#[serde(rename_all = "snake_case")]
+enum ScanStatus {
+    Ok,
+    Unknown,
+    AlreadyScanned,
+}
+
+
+#[derive(Serialize)]
+struct ScanResponse {
+    status: ScanStatus,
 }
 
 #[tokio::main]
