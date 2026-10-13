@@ -52,7 +52,7 @@ async fn main() {
         scanned: Arc::new(Mutex::new(HashSet::new())),
     };
 
-    // 2. On configure la route /api/post pour accepter uniquement les requêtes POST
+    // 2. On configure la route /api/scan pour accepter uniquement les requêtes POST
     let api = Router::new().route("/api/scan", post(handle_scan)).with_state(state);
     // Écoute sur toutes les interfaces réseau (0.0.0.0) sur le port 8080
     let firmware_serveur_endpoint = SocketAddr::from(([0, 0, 0, 0], 8080));
@@ -65,13 +65,13 @@ async fn main() {
             listener
         },
         Err(error) => {
-            eprintln!("Error : failed to connect at {} ({})", firmware_serveur_endpoint, error);
+            eprintln!("Error : failed to bind {} ({})", firmware_serveur_endpoint, error);
             std::process::exit(1);
         }
     };
 
     if let Err(error) = axum::serve(listener, api).await {
-        eprintln!("Error : connection failed : {}", error);
+        eprintln!("Error : server STOPPED ! : {}", error);
         std::process::exit(1);
     }
 
