@@ -111,6 +111,19 @@ async fn handle_scan(State(state): State<AppState>, Json(server_infos): Json<sca
     Json(ScanResponse { status })
 }
 
+async fn handle_status_number(State(state): State<AppState>) -> Json<StatusNumberResponse> {
+    let scanned = state.scanned.lock().unwrap_or_else(|e| e.into_inner());
+
+    let total = state.known.len();
+    let evacuate_person = scanned.len();
+
+    Json(StatusNumberResponse {
+        total,
+        evacuate_person,
+        missing_person: total - evacuate_person,
+    })
+}
+
 async fn handle_status(State(state): State<AppState>) -> Json<StatusResponse>  {
     let scanned = state.scanned.lock().unwrap_or_else(|e| e.into_inner());
 
