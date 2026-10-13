@@ -45,8 +45,7 @@ struct AppState {
 async fn main() {
     // instanciation de badge connu : permet de remplacer la bdd
     // instanciation of badges to replace the db system
-    let mut badges = Arc::new(String::from);
-    let known: HashSet<String> = ["hash_alice", "hash_bob", "hash_charlie"].into_iter().map(*badges).collect();
+    let known: HashSet<String> = ["hash_alice", "hash_bob", "hash_charlie"].into_iter().map(String::from).collect();
 
     let state = AppState {
         known: Arc::new(known),
