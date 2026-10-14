@@ -1,6 +1,6 @@
 # Auris
 
-Système de pointage d'évacuation par badges RFID pour une entreprise de haute sécurité.
+Système de pointage d'évacuation par badges RFID pour entreprise.
 
 Lors d'un exercice d'évacuation (incendie, crise), le décompte manuel au point de rassemblement est lent et source d'erreurs. Auris le remplace : il croise les personnes entrées dans le bâtiment avec celles scannées au point de rassemblement, en temps réel, pour savoir immédiatement **qui manque**.
 
