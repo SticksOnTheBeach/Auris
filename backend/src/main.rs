@@ -39,7 +39,7 @@ struct StatusResponse {
     evacuate_person: Vec<String>,
     missing_person: Vec<String>,
 }
-
+// the summary of which persons are actually evacuate or not
 #[derive(Serialize)]
 struct StatusSummaryResponse {
     total: usize,
@@ -70,10 +70,7 @@ fn storage_error(error: sqlx::Error) -> ApiError {
 // ---------- Handlers ----------
 
 // POST /api/scan
-async fn handle_scan(
-    State(pool): State<PgPool>,
-    Json(request): Json<ScanRequest>,
-) -> Result<Json<ScanResponse>, ApiError> {
+async fn handle_scan(State(pool): State<PgPool>, Json(request): Json<ScanRequest>, ) -> Result<Json<ScanResponse>, ApiError> {
     println!("scan: borne={} badge={}", request.borne_id, request.badge_hash);
 
     // A single INSERT: it only succeeds if the badge belongs to a known employee
@@ -140,9 +137,7 @@ async fn handle_status(State(pool): State<PgPool>) -> Result<Json<StatusResponse
 }
 
 // GET /api/status/summary
-async fn handle_summary(
-    State(pool): State<PgPool>,
-) -> Result<Json<StatusSummaryResponse>, ApiError> {
+async fn handle_summary(State(pool): State<PgPool>, ) -> Result<Json<StatusSummaryResponse>, ApiError> {
     let (total, evacuated): (i64, i64) = sqlx::query_as(
         "SELECT COUNT(*),
                 COUNT(*) FILTER (WHERE EXISTS (
