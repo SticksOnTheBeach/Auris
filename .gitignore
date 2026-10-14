@@ -16,3 +16,4 @@ firmware/**/config.h
 
 # IDE
 .idea/
+.DS_Store
