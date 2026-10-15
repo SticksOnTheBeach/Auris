@@ -172,15 +172,13 @@ async fn handle_status(State(scanned): State<Arc<Mutex<HashSet<String>>>>)  -> J
 async fn handle_status_summary(State(scanned): State<Arc<Mutex<HashSet<String>>>>)  -> Json<StatusResponseSummary> {
     let scanned = scanned.lock().unwrap();
 
-    let mut evacuate_person: Vec<String> = scanned.iter().cloned().collect();
-    let evacuate_person_count = evacuate_person.len();
+    let evacuate_person_count = scanned.len();
 
-    let mut missing_person: Vec<String> = KNOWN_BADGES
+    let missing_person_count = KNOWN_BADGES
         .iter()
         .copied()
         .filter(|badge| !scanned.contains(*badge))
-        .map(String::from)
-        .collect();
+        .count();
     let missing_person_count = missing_person.len();
 
 
@@ -188,7 +186,7 @@ async fn handle_status_summary(State(scanned): State<Arc<Mutex<HashSet<String>>>
     missing_person.sort();
 
     Json(StatusResponseSummary {
-        total: evacuate_person.len() + missing_person.len(),
+        total: KNOWN_BADGES.len(),
         evacuate_person_count,
         missing_person_count,
     })
