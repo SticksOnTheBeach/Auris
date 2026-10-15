@@ -179,12 +179,7 @@ async fn handle_status_summary(State(scanned): State<Arc<Mutex<HashSet<String>>>
         .copied()
         .filter(|badge| !scanned.contains(*badge))
         .count();
-    let missing_person_count = missing_person.len();
-
-
-    evacuate_person.sort();
-    missing_person.sort();
-
+    
     Json(StatusResponseSummary {
         total: KNOWN_BADGES.len(),
         evacuate_person_count,
