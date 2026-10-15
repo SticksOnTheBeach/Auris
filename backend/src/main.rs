@@ -12,59 +12,57 @@
 */
 
 use axum::{
-    routing::{get, post},
+    extract::Json, // <-- Changement ici : Json vient de axum::extract, pas de la racine
     http::StatusCode,
-    Json, Router,
+    routing::{get, post},
+    Router,
 };
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
+use std::env;
 
+
+// struct that just represented the data send at the /api/scan route
+#[derive(Deserialize, Debug)]
+struct ScanPayload {
+    borne_location: String,
+    badge_hash : u64,
+}
+
+
+
+/* So, if you're new :
+*
+*
+*   explanationOfTheProject.txt
+*
+ */
 #[tokio::main]
 async fn main() {
-    // initialize tracing
+    // initialize tracing -> returning log informations
     tracing_subscriber::fmt::init();
+
+    // load the env file
+    dotenvy::dotenv().ok();
+
+    let listening_address = env::var("APP_LISTENING_ADDRESS").unwrap_or_else(|_| "0.0.0.0:8080".to_string());
 
     // build our application with a route
     let app = Router::new()
-        // `GET /` goes to `root`
-        .route("/", get(root))
-        // `POST /users` goes to `create_user`
-        .route("/users", post(create_user));
+        .route("/api/scan", post(handle_scan));
 
     // run our app with hyper, listening globally on port 3000
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
+    let listener = tokio::net::TcpListener::bind(&listening_address).await.unwrap();
+    println!("Serveur listening to... http://{}", &listening_address);
     axum::serve(listener, app).await;
 }
 
-// basic handler that responds with a static string
-async fn root() -> &'static str {
-    "Hello, World!"
+// handler that just retrieves and processes the data
+async fn handle_scan(Json(payload): Json<ScanPayload>, ) -> (StatusCode, &'static str) {
+    // Ici, vous avez accès à vos données typées
+    println!("Scan received at : {}", payload.borne_location);
+    println!("Badges : {:?}", payload.badge_hash);
+
+    // Réponse HTTP
+    (StatusCode::OK, "Scan well received")
 }
 
-async fn create_user(
-    // this argument tells axum to parse the request body
-    // as JSON into a `CreateUser` type
-    Json(payload): Json<CreateUser>,
-) -> (StatusCode, Json<User>) {
-    // insert your application logic here
-    let user = User {
-        id: 1337,
-        username: payload.username,
-    };
-
-    // this will be converted into a JSON response
-    // with a status code of `201 Created`
-    (StatusCode::CREATED, Json(user))
-}
-
-// the input to our `create_user` handler
-#[derive(Deserialize)]
-struct CreateUser {
-    username: String,
-}
-
-// the output to our `create_user` handler
-#[derive(Serialize)]
-struct User {
-    id: u64,
-    username: String,
-}
