@@ -20,6 +20,8 @@ use serde::{Deserialize, Serialize};
 use std::env;
 use std::sync::{Arc, Mutex};
 use axum::extract::State;
+use axum::response::IntoResponse;
+use axum::routing::get;
 
 // struct that just represented the data send at the /api/scan route
 #[derive(Deserialize, Debug)]
@@ -42,6 +44,13 @@ struct ScanResponse {
     status: ScanStatus,
 }
 
+#[derive(Serialize)]
+struct StatusResponse {
+    total: usize,
+    evacuate_person: Vec<String>,
+    missing_person: Vec<String>,
+}
+
 /* So, if you're new :
 *
 *
@@ -62,7 +71,10 @@ async fn main() {
     // instanciation of a counter to know if a badge is already scanned or not
     let scanned : Arc<Mutex<HashSet<String>>> = Arc::new(Mutex::new(HashSet::new()));
     // build our application with a route
-    let app = Router::new().route("/api/scan", post(handle_scan)).with_state(scanned);
+    let app = Router::new()
+        .route("/api/scan", post(handle_scan))
+        .route("/api/status", get(handle_status)
+        ).with_state(scanned);
 
     // run our app with hyper, listening globally on port 3000
     //let listener = tokio::net::TcpListener::bind(&listening_address).await.unwrap();
@@ -116,3 +128,5 @@ async fn handle_scan(State(scanned) : State<Arc<Mutex<HashSet<String>>>>, Json(p
 
     Json(ScanResponse { status })
 }
+
+async fn handle_status(State(scanned): State<Arc<Mutex<HashSet<String>>>>)  -> impl IntoResponse {}
