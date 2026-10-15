@@ -50,6 +50,13 @@ struct StatusResponse {
     missing_person: Vec<String>,
 }
 
+#[derive(Serialize)]
+struct StatusResponseSummary {
+    total: usize,
+    evacuate_person_count: usize,
+    missing_person_count: usize,
+}
+
 /* So, if you're new :
 *
 *
@@ -72,7 +79,8 @@ async fn main() {
     // build our application with a route
     let app = Router::new()
         .route("/api/scan", post(handle_scan))
-        .route("/api/status", get(handle_status)
+        .route("/api/status", get(handle_status))
+        .route("/api/status/summary", get(handle_status_summary)
         ).with_state(scanned);
 
     // run our app with hyper, listening globally on port 3000
@@ -157,5 +165,31 @@ async fn handle_status(State(scanned): State<Arc<Mutex<HashSet<String>>>>)  -> J
         total: evacuate_person.len() + missing_person.len(),
         evacuate_person,
         missing_person,
+    })
+}
+
+
+async fn handle_status_summary(State(scanned): State<Arc<Mutex<HashSet<String>>>>)  -> Json<StatusResponseSummary> {
+    let scanned = scanned.lock().unwrap();
+
+    let mut evacuate_person: Vec<String> = scanned.iter().cloned().collect();
+    let evacuate_person_count = evacuate_person.len();
+
+    let mut missing_person: Vec<String> = KNOWN_BADGES
+        .iter()
+        .copied()
+        .filter(|badge| !scanned.contains(*badge))
+        .map(String::from)
+        .collect();
+    let missing_person_count = missing_person.len();
+
+
+    evacuate_person.sort();
+    missing_person.sort();
+
+    Json(StatusResponseSummary {
+        total: evacuate_person.len() + missing_person.len(),
+        evacuate_person_count: evacuate_person_count,
+        missing_person_count: missing_person_count,
     })
 }
