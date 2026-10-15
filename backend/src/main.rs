@@ -20,7 +20,6 @@ use serde::{Deserialize, Serialize};
 use std::env;
 use std::sync::{Arc, Mutex};
 use axum::extract::State;
-use axum::response::IntoResponse;
 use axum::routing::get;
 
 // struct that just represented the data send at the /api/scan route
@@ -129,18 +128,34 @@ async fn handle_scan(State(scanned) : State<Arc<Mutex<HashSet<String>>>>, Json(p
     Json(ScanResponse { status })
 }
 
-async fn handle_status(State(scanned): State<Arc<Mutex<HashSet<String>>>>)  -> impl IntoResponse {
+async fn handle_status(State(scanned): State<Arc<Mutex<HashSet<String>>>>)  -> Json<StatusResponse> {
     let scanned = scanned.lock().unwrap();
 
     let mut evacuate_person: Vec<String> = scanned.iter().cloned().collect();
-    let mut missing_person : Vec<String> = scanned.difference(&scanned).cloned().collect();
+
+    /*there's two ways to have all of the missing person, or in a common way the non-scanned people */
+    /*let mut missing_person: Vec<String> = Vec::new();
+
+    for badge in KNOWN_BADGES.iter() {
+        if !scanned.contains(*badge) {
+            missing_person.push(badge.to_string());
+        }
+    }*/
+
+    let mut missing_person: Vec<String> = KNOWN_BADGES
+        .iter()
+        .copied()
+        .filter(|badge| !scanned.contains(*badge))
+        .map(String::from)
+        .collect();
+
 
     evacuate_person.sort();
     missing_person.sort();
 
-    Ok(Json(StatusResponse {
+    Json(StatusResponse {
         total: evacuate_person.len() + missing_person.len(),
         evacuate_person,
         missing_person,
-    }))
+    })
 }
