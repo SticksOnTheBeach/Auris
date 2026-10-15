@@ -116,8 +116,3 @@ async fn handle_scan(State(scanned) : State<Arc<Mutex<HashSet<String>>>>, Json(p
 
     Json(ScanResponse { status })
 }
-/*
-async fn handle_status(Json(payload): Json<ScanPayload>) -> Json<ScanResponse> {
-    // Réponse HTTP
-    Json(ScanResponse { status: ScanStatus::Ok })
-*/
