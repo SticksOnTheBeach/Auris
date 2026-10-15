@@ -60,10 +60,9 @@ async fn main() {
         env::var("APP_LISTENING_ADDRESS").unwrap_or_else(|_| "0.0.0.0:8080".to_string());
 
     // instanciation of a counter to know if a badge is already scanned or not
-    let counter : Arc<Mutex<HashSet<String>>> = Arc::new(HashSet::new().into());
+    let scanned : Arc<Mutex<HashSet<String>>> = Arc::new(Mutex::new(HashSet::new()));
     // build our application with a route
-    let app = Router::new()
-        .route("/api/scan", post(handle_scan).with_state(counter.clone()));
+    let app = Router::new().route("/api/scan", post(handle_scan)).with_state(scanned);
 
     // run our app with hyper, listening globally on port 3000
     //let listener = tokio::net::TcpListener::bind(&listening_address).await.unwrap();
@@ -96,9 +95,14 @@ const KNOWN_BADGES: [&str; 3] = [
 ];
 
 // handler that just retrieves and processes the data
-async fn handle_scan(State(counter) : State<Arc<Mutex<u32>>>, Json(payload): Json<ScanPayload>) -> Json<ScanResponse> {
+async fn handle_scan(State(scanned) : State<Arc<Mutex<HashSet<String>>>>, Json(payload): Json<ScanPayload>) -> Json<ScanResponse> {
     let status = if KNOWN_BADGES.contains(&payload.badge_hash.as_str()) {
-        ScanStatus::Ok
+        let first_time = scanned.lock().unwrap().insert(payload.badge_hash.clone());
+        if first_time {
+            ScanStatus::Ok
+        } else {
+            ScanStatus::AlreadyScanned
+        }
     } else {
         ScanStatus::Unknown
     };
