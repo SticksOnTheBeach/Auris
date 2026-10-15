@@ -129,4 +129,18 @@ async fn handle_scan(State(scanned) : State<Arc<Mutex<HashSet<String>>>>, Json(p
     Json(ScanResponse { status })
 }
 
-async fn handle_status(State(scanned): State<Arc<Mutex<HashSet<String>>>>)  -> impl IntoResponse {}
+async fn handle_status(State(scanned): State<Arc<Mutex<HashSet<String>>>>)  -> impl IntoResponse {
+    let scanned = scanned.lock().unwrap();
+
+    let mut evacuate_person: Vec<String> = scanned.iter().cloned().collect();
+    let mut missing_person : Vec<String> = scanned.difference(&scanned).cloned().collect();
+
+    evacuate_person.sort();
+    missing_person.sort();
+
+    Ok(Json(StatusResponse {
+        total: evacuate_person.len() + missing_person.len(),
+        evacuate_person,
+        missing_person,
+    }))
+}
