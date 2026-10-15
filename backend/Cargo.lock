@@ -11,6 +11,7 @@ dependencies = [
  "serde",
  "sqlx",
  "tokio",
+ "tracing",
  "tracing-subscriber",
 ]
 
